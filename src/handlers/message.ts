@@ -1,4 +1,4 @@
-import { Message } from "whatsapp-web.js";
+import { Client, Message } from "whatsapp-web.js";
 import { startsWithIgnoreCase } from "../utils";
 
 // Config & Constants
@@ -18,7 +18,7 @@ import { transcribeRequest } from "../providers/speech";
 import { transcribeAudioLocal } from "../providers/whisper-local";
 
 // Handles message
-async function handleIncomingMessage(message: Message) {
+async function handleIncomingMessage(message: Message, client: Client) {
 	let messageString = message.body;
 
 	// Transcribe audio
@@ -71,20 +71,27 @@ async function handleIncomingMessage(message: Message) {
 		message.reply("You said: " + transcribedText + " (language: " + transcribedLanguage + ")");
 
 		// Handle message GPT
-		await handleMessageGPT(message, transcribedText);
+		await handleMessageGPT(message, transcribedText, null);
 		return;
 	}
 
 	if (!config.prefixEnabled) {
 		// GPT (only <prompt>)
-		await handleMessageGPT(message, messageString);
+		await handleMessageGPT(message, messageString, null);
+		return;
+	}
+
+	// GPT (!gpt !dalle <prompt>)
+	if (startsWithIgnoreCase(messageString, `${config.gptPrefix} ${config.dallePrefix}`)) {
+		const prompt = messageString.substring(config.gptPrefix.length + 1);
+		await handleMessageGPT(message, prompt, client);
 		return;
 	}
 
 	// GPT (!gpt <prompt>)
 	if (startsWithIgnoreCase(messageString, config.gptPrefix)) {
 		const prompt = messageString.substring(config.gptPrefix.length + 1);
-		await handleMessageGPT(message, prompt);
+		await handleMessageGPT(message, prompt, null);
 		return;
 	}
 

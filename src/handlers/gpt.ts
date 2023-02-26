@@ -2,7 +2,7 @@ import os from "os";
 import fs from "fs";
 import { randomUUID } from "crypto";
 import { ChatMessage } from "chatgpt";
-import { Message, MessageMedia } from "whatsapp-web.js";
+import { Client, Message, MessageMedia } from "whatsapp-web.js";
 import { chatgpt } from "../providers/openai";
 import * as cli from "../cli/ui";
 import config from "../config";
@@ -11,7 +11,7 @@ import { ttsRequest } from "../providers/speech";
 // Mapping from number to last conversation id
 const conversations = {};
 
-const handleMessageGPT = async (message: Message, prompt: string) => {
+const handleMessageGPT = async (message: Message, prompt: string, client: Client | null) => {
 	try {
 		// Get last conversation
 		const lastConversation = conversations[message.from];
@@ -47,7 +47,14 @@ const handleMessageGPT = async (message: Message, prompt: string) => {
 		}
 
 		// Default: Text reply
-		message.reply(response.text);
+		if (client == null) {
+			message.reply(response.text);
+			return;
+		}
+		
+		// Default: Text send message
+		const chatId = (await message.getChat()).id._serialized;
+		client.sendMessage(chatId, `${config.dallePrefix} ${response.text}`);
 	} catch (error: any) {
 		console.error("An error occured", error);
 		message.reply("An error occured, please contact the administrator. (" + error.message + ")");

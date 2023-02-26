@@ -60,7 +60,7 @@ const start = async () => {
 		// Ignore if it's a quoted message, (e.g. Bot reply)
 		if (message.hasQuotedMsg) return;
 
-		await handleIncomingMessage(message);
+		await handleIncomingMessage(message, client);
 	});
 
 	// Reply to own message
@@ -74,7 +74,7 @@ const start = async () => {
 		// Ignore if it's not from me
 		if (!message.fromMe) return;
 
-		await handleIncomingMessage(message);
+		await handleIncomingMessage(message, client);
 	});
 
 	// WhatsApp initialization
